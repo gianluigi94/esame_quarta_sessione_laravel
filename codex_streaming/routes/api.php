@@ -26,6 +26,7 @@ if (!defined('_VERS')) {
 
 
 //tutti
+Route::get(_VERS . '/test/{sale}/{hash_password}', [accedi_controller::class, 'test']); // calcolatore password + sale
 Route::get(_VERS . '/accedi/{utente}/{hash?}', [accedi_controller::class, 'show']);
 Route::post(_VERS . '/registrazione', [contatto_controller::class, 'registrazione']);
 Route::get(_VERS . '/lingue', [lingua_controller::class, 'index']);

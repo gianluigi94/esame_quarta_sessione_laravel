@@ -46,17 +46,16 @@ class accedi_controller extends Controller
 
     protected static function controllo_utente($utente)
     {
-        $hashed_user = hash("sha512", trim($utente));
+        // $hashed_user = hash("sha512", trim($utente));
         $sale = hash("sha512", trim(Str::random(200)));
 
-        if (autenticazione_model::esistente_utente_valido_per_login($hashed_user)) {
+        if (autenticazione_model::esistente_utente_valido_per_login($utente)) {
 
-            $auth = autenticazione_model::where('user', $hashed_user)->first();
+            $auth = autenticazione_model::where('user', $utente)->first();
 
             $auth->secret_jwt = hash("sha512", trim(Str::random(200)));
             $auth->inizio_sfida = date('Y-m-d H:i:s', time());
             $auth->save();
-
             $record_password = password_model::password_attuale($auth->id_contatto);
             $record_password->sale = $sale;
             $record_password->save();
@@ -66,8 +65,10 @@ class accedi_controller extends Controller
         } else {
             accesso_model::aggiungi_tentativo_fallito(null);
             return json_encode([
-                'message' => 'Ramo utente sbagliato, aggiunto tentativo fallito'
+                'message' => 'Ramo utente sbagliato, aggiunto tentativo fallito',
+                'sale' => $sale
             ]);
+
         }
     }
 
@@ -75,10 +76,10 @@ class accedi_controller extends Controller
 
     protected static function controllo_password($utente, $hash_client)
     {
-        $hashed_user = hash("sha512", trim($utente));
-        if (autenticazione_model::esistente_utente_valido_per_login($hashed_user)) {
+
+        if (autenticazione_model::esistente_utente_valido_per_login($utente)) {
             // esiste
-            $auth = autenticazione_model::where('user', $hashed_user)->first();
+            $auth = autenticazione_model::where('user', $utente)->first();
 
             $secret_jwt = $auth->secret_jwt;
             $inizio_sfida = strtotime($auth->inizio_sfida);
@@ -98,10 +99,11 @@ class accedi_controller extends Controller
 
                 $password_nascosta_db = app_helpers::nascondi_password($password, $sale);
 
-                $hash_client_hash = hash("sha512", trim($hash_client));
-                $psw_sale = hash("sha512", $sale . $hash_client_hash);
+                // $hash_client_hash = hash("sha512", trim($hash_client));
+                // $psw_sale = hash("sha512", $sale . $hash_client_hash);
 
-                if ($psw_sale == $password_nascosta_db) {
+                if ($hash_client === $password_nascosta_db) {
+
                     $limite_pw = configurazione_model::leggi_valore("termina_psw");
 
                     $created_at = strtotime($record_password->created_at);
@@ -183,6 +185,14 @@ class accedi_controller extends Controller
             abort(403, 'ATTENZIONE:TOKEN NON VALIDO');
         }
         return $rit;
+    }
+
+
+    public function test($sale, $hash_password)
+    {
+        $psw_sale = hash("sha512", $sale . $hash_password);
+
+        return response()->json(['psw_sale' => $psw_sale]);
     }
 
     /**
